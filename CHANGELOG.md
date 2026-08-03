@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3 – 2026-08-03
+
+- LoxBerry AutoUpdate-Konfiguration für den Release-Kanal vereinheitlicht.
+- Release- und Download-URLs auf Version 1.0.3 aktualisiert.
+- GitHub-Workflow prüft vor dem Release die Versionen in `plugin.cfg` und `release.cfg`.
+- Installierbares Plugin-ZIP wird bei einem Tag `v*` automatisch als Release-Asset erzeugt.
+
 ## 1.0.2 - 2026-08-03
 
 - LoxBerry AutoUpdate für das öffentliche GitHub-Repository aktiviert.

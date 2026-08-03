@@ -161,7 +161,7 @@ print <<'FYTA_STATIC';
 <div class="fyta-wrap"><nav class="fyta-nav"><a href="index.cgi">Startseite</a><a href="settings.cgi">Einstellungen</a><a href="sync.cgi">Jetzt synchronisieren</a><a href="udp_test.cgi">UDP-Test</a></nav>
 FYTA_STATIC
 print <<"FYTA_HTML";
-<section class="fyta-card"><div class="fyta-header-row"><div><h2>FYTA Connect</h2><p>FYTA-Pflanzensensoren automatisch auslesen und Messwerte per UDP an Loxone übertragen.</p></div><div class="fyta-version">Version 1.0.1</div></div></section>
+<section class="fyta-card"><div class="fyta-header-row"><div><h2>FYTA Connect</h2><p>FYTA-Pflanzensensoren automatisch auslesen und Messwerte per UDP an Loxone übertragen.</p></div><div class="fyta-version">Version 1.0.3</div></div></section>
 <section class="fyta-card"><h2>Systemstatus</h2><div class="fyta-banner $status_class">$safe_status_text</div>
 <div class="fyta-indicators"><div class="fyta-indicator"><div class="fyta-small">Scheduler</div><div class="$scheduler_class">$safe_scheduler</div></div><div class="fyta-indicator"><div class="fyta-small">UDP</div><div class="$udp_class">$safe_udp_text</div></div><div class="fyta-indicator"><div class="fyta-small">Logdatei</div><strong>$safe_log_size</strong></div></div>
 <div class="fyta-details"><div class="fyta-label">Letzter Lauf</div><div>$safe_last_run</div><div class="fyta-label">Zuletzt erfolgreich gesendet</div><div>$safe_last_success</div><div class="fyta-label">Nächste Synchronisation</div><div>$safe_next_sync</div><div class="fyta-label">Intervall</div><div>$interval Minuten</div><div class="fyta-label">UDP-Ziel</div><div>$safe_udp_host:$safe_udp_port</div></div><div class="fyta-message"><strong>Letzte Meldung:</strong><br>$safe_message</div></section>
