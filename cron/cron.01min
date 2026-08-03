@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# FYTA Connect Scheduler
+# Der Scheduler prüft das Intervall aus fyta.cfg.
+# Die eigentliche Protokollierung erfolgt über logger.pm.
+
+/usr/bin/perl \
+    /opt/loxberry/bin/plugins/fyta_connect/fyta_scheduler.pl \
+    >/dev/null 2>&1
+
+exit 0
