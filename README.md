@@ -29,7 +29,7 @@ Install the release ZIP through the LoxBerry Plugin Manager. Configure the FYTA 
 
 ## Automatic GitHub releases
 
-The included GitHub Actions workflow creates an installable ZIP and a GitHub Release whenever a tag such as `v1.0.1` is pushed. See `GITHUB_RELEASE.md`.
+The included GitHub Actions workflow creates an installable ZIP and a GitHub Release whenever a tag such as `v1.0.2` is pushed. See `GITHUB_RELEASE.md`.
 
 ## License
 

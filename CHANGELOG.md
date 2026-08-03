@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2 - 2026-08-03
+
+- LoxBerry AutoUpdate für das öffentliche GitHub-Repository aktiviert.
+- `release.cfg` und `prerelease.cfg` ergänzt.
+- Release-Workflow für das installierbare ZIP angepasst.
+
 ## 1.0.1
 
 - Send numeric fallback value `-9999` for unavailable measurements.
