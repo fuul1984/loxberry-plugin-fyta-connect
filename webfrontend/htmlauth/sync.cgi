@@ -4,6 +4,9 @@ use strict;
 use warnings;
 use utf8;
 
+use lib "/opt/loxberry/bin/plugins/fyta_connect";
+use config;
+
 binmode STDOUT, ':encoding(UTF-8)';
 
 my $script =
@@ -13,7 +16,21 @@ my $output = '';
 my $exit_code;
 my $timed_out = 0;
 
-if (!-f $script) {
+my $cfg = config::read_config();
+$cfg = {} unless $cfg && ref($cfg) eq 'HASH';
+my $plugin_enabled = ($cfg->{PLUGIN_ENABLED} // 'true') eq 'true';
+my $token_present = length($cfg->{FYTA_TOKEN} // '') > 0;
+
+
+if (!$plugin_enabled) {
+    $output = 'Plugin ist deaktiviert. Bitte auf der Startseite aktivieren.';
+    $exit_code = 2;
+}
+elsif (!$token_present) {
+    $output = 'Kein FYTA-Token gewählt. Bitte zuerst die Einstellungen öffnen.';
+    $exit_code = 2;
+}
+elsif (!-f $script) {
     $output = "Hauptprogramm nicht gefunden:\n$script";
     $exit_code = 1;
 }

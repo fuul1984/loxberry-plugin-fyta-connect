@@ -34,3 +34,10 @@ The included GitHub Actions workflow creates an installable ZIP and a GitHub Rel
 ## License
 
 MIT
+
+
+## Bedienung ab 1.0.5
+
+- Auf der Startseite kann das Plugin aktiviert oder deaktiviert werden.
+- Der Ziel-Miniserver wird in den Einstellungen direkt aus der LoxBerry-Miniserverliste gewählt.
+- Fehlender Token oder Miniserver wird im Dashboard angezeigt.

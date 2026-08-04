@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.5 – 2026-08-04
+
+- Miniserver-Auswahl als Dropdown aus der LoxBerry-Systemkonfiguration.
+- Plugin direkt auf der Startseite aktivieren oder deaktivieren.
+- Dashboard zeigt Token- und Miniserver-Konfigurationsstatus.
+- Scheduler und manuelle Synchronisation respektieren den deaktivierten Zustand.
+- Unvollständige Konfiguration wird klar als Warnung angezeigt.
+
+
 ## 1.0.3 – 2026-08-03
 
 - LoxBerry AutoUpdate-Konfiguration für den Release-Kanal vereinheitlicht.

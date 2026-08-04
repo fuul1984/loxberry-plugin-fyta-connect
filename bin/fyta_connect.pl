@@ -38,6 +38,13 @@ unless ($cfg && ref($cfg) eq "HASH") {
     finish_with_error("Konfiguration konnte nicht gelesen werden");
 }
 
+my $plugin_enabled = ($cfg->{PLUGIN_ENABLED} // "true") eq "true";
+
+unless ($plugin_enabled) {
+    logger::info("FYTA Connect ist deaktiviert – Synchronisation übersprungen");
+    exit 0;
+}
+
 my $token = $cfg->{FYTA_TOKEN} // "";
 my $host = $cfg->{UDP_HOST} // "";
 my $port = $cfg->{UDP_PORT} // "";
