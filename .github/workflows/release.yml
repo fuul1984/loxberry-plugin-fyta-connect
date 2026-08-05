@@ -21,79 +21,156 @@ jobs:
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+
+          if [ -z "$VERSION" ]; then
+            echo "Keine Version aus Tag ermittelt."
+            exit 1
+          fi
+
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Ermittelte Version: $VERSION"
 
-      - name: Plugin-Struktur prüfen
+      - name: Repository-Struktur prüfen
         shell: bash
         run: |
-          test -f fyta_connect/plugin.cfg
-          test -d fyta_connect/bin
-          test -d fyta_connect/webfrontend
-          test -d fyta_connect/cron
+          test -f plugin.cfg
+          test -d bin
+          test -d webfrontend
+          test -d cron
 
-          grep -q "^VERSION=${{ steps.version.outputs.version }}$" \
-            fyta_connect/plugin.cfg
+          echo "Plugin-Dateien im Repository gefunden."
 
-      - name: Unnötige Dateien entfernen
+      - name: Versionsdaten prüfen
         shell: bash
         run: |
-          find fyta_connect -name ".DS_Store" -delete
-          find fyta_connect -name "._*" -delete
-          find fyta_connect -name "*.log" -delete
-          find fyta_connect -name "*.bak" -delete
+          VERSION="${{ steps.version.outputs.version }}"
+
+          grep -q "^VERSION=${VERSION}$" plugin.cfg
+
+          if [ -f release.cfg ]; then
+            grep -q "^VERSION=${VERSION}$" release.cfg
+          fi
+
+          echo "Versionsdaten stimmen mit dem Tag überein."
+
+      - name: Installationsstruktur vorbereiten
+        shell: bash
+        run: |
+          rm -rf build
+          mkdir -p build/fyta_connect
+
+          # Zentrale Plugin-Datei
+          cp plugin.cfg build/fyta_connect/
+
+          # Optionale Installations- und Upgrade-Skripte
+          for FILE in \
+            postinstall.sh \
+            preinstall.sh \
+            preupgrade.sh \
+            postupgrade.sh \
+            postroot.sh
+          do
+            if [ -f "$FILE" ]; then
+              cp "$FILE" build/fyta_connect/
+            fi
+          done
+
+          # Plugin-Verzeichnisse übernehmen
+          for DIR in \
+            bin \
+            cron \
+            icons \
+            templates \
+            translations \
+            uninstall \
+            webfrontend
+          do
+            if [ -d "$DIR" ]; then
+              cp -a "$DIR" build/fyta_connect/
+            fi
+          done
+
+          # Konfigurationsordner bewusst leer anlegen.
+          # Eine vorhandene fyta.cfg darf bei Updates nicht ausgeliefert
+          # und dadurch überschrieben werden.
+          mkdir -p build/fyta_connect/config
+
+          # Unerwünschte Dateien entfernen
+          find build -name ".DS_Store" -delete
+          find build -name "._*" -delete
+          find build -name "__MACOSX" -type d -prune -exec rm -rf {} +
+          find build -name "*.log" -delete
+          find build -name "*.bak" -delete
 
       - name: Dateirechte setzen
         shell: bash
         run: |
-          find fyta_connect/bin -type f -name "*.pl" -exec chmod 755 {} \;
-          find fyta_connect/webfrontend -type f -name "*.cgi" -exec chmod 755 {} \;
-          find fyta_connect/cron -type f -exec chmod 755 {} \;
+          find build/fyta_connect/bin \
+            -type f -name "*.pl" \
+            -exec chmod 755 {} \; 2>/dev/null || true
 
-          if [ -f fyta_connect/postinstall.sh ]; then
-            chmod 755 fyta_connect/postinstall.sh
-          fi
+          find build/fyta_connect/webfrontend \
+            -type f -name "*.cgi" \
+            -exec chmod 755 {} \; 2>/dev/null || true
 
-          if [ -f fyta_connect/preupgrade.sh ]; then
-            chmod 755 fyta_connect/preupgrade.sh
-          fi
+          find build/fyta_connect/cron \
+            -type f \
+            -exec chmod 755 {} \; 2>/dev/null || true
 
-          if [ -f fyta_connect/postupgrade.sh ]; then
-            chmod 755 fyta_connect/postupgrade.sh
-          fi
+          find build/fyta_connect/uninstall \
+            -type f -name "*.sh" \
+            -exec chmod 755 {} \; 2>/dev/null || true
+
+          find build/fyta_connect \
+            -maxdepth 1 -type f -name "*.sh" \
+            -exec chmod 755 {} \;
 
       - name: Installations-ZIP erstellen
         shell: bash
         run: |
-          ZIP_NAME="FYTA_Connect_v${{ steps.version.outputs.version }}.zip"
+          VERSION="${{ steps.version.outputs.version }}"
+          ZIP_NAME="FYTA_Connect_v${VERSION}.zip"
 
-          zip -r "$ZIP_NAME" fyta_connect \
-            -x "*/.git/*" \
-               "*/.github/*" \
-               "*/.DS_Store" \
-               "*/__MACOSX/*" \
-               "*/._*"
+          (
+            cd build
+            zip -r "../${ZIP_NAME}" fyta_connect
+          )
 
-          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"
+          echo "ZIP_NAME=${ZIP_NAME}" >> "$GITHUB_ENV"
 
       - name: ZIP-Inhalt kontrollieren
         shell: bash
         run: |
+          echo "Erzeugtes Paket:"
           unzip -l "$ZIP_NAME"
 
-          unzip -l "$ZIP_NAME" | grep -q \
-            "fyta_connect/plugin.cfg"
+          unzip -l "$ZIP_NAME" \
+            | grep -q "fyta_connect/plugin.cfg"
 
-      - name: Release erstellen und ZIP hochladen
+          # Die Benutzerkonfiguration darf nicht im Updatepaket enthalten sein.
+          if unzip -l "$ZIP_NAME" \
+            | grep -q "fyta_connect/config/fyta.cfg"; then
+              echo "FEHLER: fyta.cfg ist im Installationspaket enthalten."
+              exit 1
+          fi
+
+          echo "LoxBerry-Paketstruktur ist korrekt."
+
+      - name: Release erstellen oder Asset hochladen
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release existiert bereits. Asset wird ergänzt/ersetzt."
+
             gh release upload \
               "$GITHUB_REF_NAME" \
               "$ZIP_NAME" \
               --clobber
           else
+            echo "Release wird automatisch erstellt."
+
             gh release create \
               "$GITHUB_REF_NAME" \
               "$ZIP_NAME" \
