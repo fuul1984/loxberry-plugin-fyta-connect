@@ -29,10 +29,8 @@ my $cfg = config::read_config();
 die "Konfiguration konnte nicht gelesen werden\n"
     unless $cfg && ref($cfg) eq "HASH";
 
-my $plugin_enabled = ($cfg->{PLUGIN_ENABLED} // "true") eq "true";
-
-# Deaktiviertes Plugin: keine API-Abfrage und kein UDP-Versand.
-exit 0 unless $plugin_enabled;
+# Bei deaktiviertem Plugin keine API-Abfrage und keinen UDP-Versand ausführen.
+exit 0 unless ($cfg->{PLUGIN_ENABLED} // "true") eq "true";
 
 my $interval = $cfg->{INTERVAL};
 $interval = 15 unless defined $interval && $interval =~ /^\d+$/;

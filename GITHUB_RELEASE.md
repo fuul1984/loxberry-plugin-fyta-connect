@@ -1,13 +1,13 @@
-# GitHub Release – FYTA Connect v1.0.5
+# FYTA Connect v1.5.0
 
-1. Den vollständigen Inhalt dieses Repository-Pakets in den Branch `main` hochladen.
-2. Kontrollieren, dass `plugin.cfg`, `release.cfg` und `prerelease.cfg` jeweils Version `1.0.5` enthalten.
-3. Einen neuen Tag `v1.0.5` erstellen oder unter **Releases** einen Release mit diesem Tag veröffentlichen.
-4. Der Workflow **Build LoxBerry release** erzeugt automatisch `FYTA_Connect_v1.0.5.zip` und hängt es an den Release.
-5. Auf einem LoxBerry mit einer älteren Version **Auf neue Updates prüfen** ausführen.
+## Highlights
 
-## Änderungen in 1.0.5
+- **Update-sichere Konfiguration:** Token, Miniserver, UDP-Port, Intervall und Pluginstatus bleiben bei Updates erhalten.
+- **Miniserver-Dropdown:** Auswahl direkt aus den im LoxBerry hinterlegten Miniservers.
+- **Aktiv/Deaktiv auf der Startseite:** Automatische Abfragen und UDP-Versand lassen sich sofort pausieren.
+- **Klare Betriebsanzeige:** „Betriebsbereit“, „Kein Token gewählt“, „Kein Miniserver gewählt“ oder „Plugin deaktiviert“.
+- Neue Konfigurationswerte werden bei Upgrades ergänzt, ohne vorhandene Werte zu überschreiben.
 
-- Miniserver-Dropdown aus der LoxBerry-Systemkonfiguration.
-- Aktivieren/Deaktivieren direkt auf der Startseite.
-- Token- und Konfigurationsstatus im Dashboard.
+## Upgrade-Hinweis
+
+Beim Update auf 1.5.0 wird die bestehende `fyta.cfg` vor der Installation gesichert, danach wiederhergestellt und nur um fehlende Standardschlüssel ergänzt.

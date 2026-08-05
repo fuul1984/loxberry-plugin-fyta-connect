@@ -1,13 +1,14 @@
 # Changelog
 
-## 1.0.5 – 2026-08-04
+## 1.5.0 – 2026-08-05
 
-- Miniserver-Auswahl als Dropdown aus der LoxBerry-Systemkonfiguration.
-- Plugin direkt auf der Startseite aktivieren oder deaktivieren.
-- Dashboard zeigt Token- und Miniserver-Konfigurationsstatus.
-- Scheduler und manuelle Synchronisation respektieren den deaktivierten Zustand.
-- Unvollständige Konfiguration wird klar als Warnung angezeigt.
-
+- Benutzereinstellungen bleiben bei Plugin-Updates erhalten.
+- Upgrade-Sicherung und Wiederherstellung für `fyta.cfg`.
+- Neue Konfigurationsschlüssel werden automatisch ergänzt, bestehende Werte nicht überschrieben.
+- Miniserver-Auswahl direkt aus den LoxBerry-Systemeinstellungen.
+- Plugin kann auf der Startseite aktiviert oder deaktiviert werden.
+- Startseite zeigt „Kein Token gewählt“ und fehlende Miniserver-Konfiguration deutlich an.
+- Token, UDP-Ziel, Port, Intervall, Status und Logs bleiben bei Updates erhalten.
 
 ## 1.0.3 – 2026-08-03
 

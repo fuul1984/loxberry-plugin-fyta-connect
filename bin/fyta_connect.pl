@@ -38,10 +38,16 @@ unless ($cfg && ref($cfg) eq "HASH") {
     finish_with_error("Konfiguration konnte nicht gelesen werden");
 }
 
-my $plugin_enabled = ($cfg->{PLUGIN_ENABLED} // "true") eq "true";
-
-unless ($plugin_enabled) {
-    logger::info("FYTA Connect ist deaktiviert – Synchronisation übersprungen");
+unless (($cfg->{PLUGIN_ENABLED} // "true") eq "true") {
+    logger::info("Plugin ist deaktiviert – keine Synchronisation ausgeführt");
+    write_status({
+        LAST_RUN_EPOCH => time(),
+        LAST_RUN => timestamp(time()),
+        STATUS => "DISABLED",
+        MESSAGE => "Plugin ist deaktiviert",
+        PLANTS => 0, TELEGRAMS => 0, ERRORS => 0, INVALID_VALUES => 0,
+        DURATION_SECONDS => time() - $start_epoch,
+    });
     exit 0;
 }
 
