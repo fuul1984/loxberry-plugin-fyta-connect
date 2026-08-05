@@ -36,6 +36,6 @@ The included GitHub Actions workflow creates an installable ZIP and a GitHub Rel
 MIT
 
 
-## Version 1.5.0
+## Version 1.7.0
 
-Version 1.5.0 schützt die Benutzereinstellungen bei Updates. Zusätzlich kann der Miniserver aus den LoxBerry-Systemeinstellungen ausgewählt und das Plugin direkt auf dem Dashboard aktiviert oder deaktiviert werden.
+Version 1.7.0 schützt die Benutzereinstellungen bei Updates. Zusätzlich kann der Miniserver aus den LoxBerry-Systemeinstellungen ausgewählt und das Plugin direkt auf dem Dashboard aktiviert oder deaktiviert werden.

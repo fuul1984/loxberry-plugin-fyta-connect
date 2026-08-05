@@ -1,12 +1,14 @@
 # Changelog
 
-## 1.6.0
+## 1.7.0 – 2026-08-05
 
-- Automatischer GitHub-Release-Build stabilisiert.
-- Installierbares LoxBerry-ZIP wird beim Tag `v1.6.0` automatisch erzeugt und angehängt.
-- Build prüft die Plugin-Struktur und Versionskonsistenz.
-- Aktive `fyta.cfg` wird nicht in das Update-Paket aufgenommen, damit Benutzereinstellungen erhalten bleiben.
-- Workflow hängt nicht mehr von zusätzlichen Perl-Modulen des GitHub-Runners ab.
+- Miniserver-Dropdown liest die LoxBerry-4-Felder `Name` und `IPAddress` korrekt.
+- Gespeicherter Miniserver wird über Nummer oder IP automatisch wieder ausgewählt.
+- Falls noch keine Auswahl gespeichert ist, wird der erste konfigurierte Miniserver vorausgewählt.
+- Plugin kann direkt auf der Startseite aktiviert oder deaktiviert werden.
+- Startseite zeigt deutlich „Kein Token gewählt“ beziehungsweise „Kein Miniserver gewählt“.
+- Konfiguration wird bei Updates gesichert und wiederhergestellt; fehlende Schlüssel werden nur ergänzt.
+- Release-Workflow erstellt das installierbare LoxBerry-ZIP automatisch.
 
 ## 1.5.1 – 2026-08-05
 

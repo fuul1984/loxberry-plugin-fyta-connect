@@ -16,7 +16,8 @@ ensure_key() {
 }
 ensure_key PLUGIN_ENABLED true
 ensure_key FYTA_TOKEN ""
-ensure_key MINISERVER_NO 1
+ensure_key MINISERVER_NO ""
+ensure_key MINISERVER_NAME ""
 ensure_key UDP_ENABLED true
 ensure_key UDP_HOST ""
 ensure_key UDP_PORT 5007

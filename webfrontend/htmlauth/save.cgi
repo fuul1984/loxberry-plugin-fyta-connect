@@ -56,7 +56,7 @@ sub get_servers {
         next unless ref($entry) eq 'HASH';
         my $host = first(
             $entry,
-            qw(IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME hostname ADDRESS Address address)
+            qw(IPAddress IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME Hostname hostname ADDRESS Address address)
         );
         next unless defined $host && length $host;
         next if $seen{lc($host)}++;
@@ -89,7 +89,7 @@ sub collect_server_candidates {
 
     my $host = first(
         $node,
-        qw(IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME hostname ADDRESS Address address)
+        qw(IPAddress IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME Hostname hostname ADDRESS Address address)
     );
     push @{$out}, $node if defined $host && length $host;
 

@@ -104,7 +104,7 @@ sub get_servers {
 
         my $host = first_value(
             $entry,
-            qw(IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME hostname ADDRESS Address address)
+            qw(IPAddress IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME Hostname hostname ADDRESS Address address)
         );
         next unless defined $host && length $host;
 
@@ -153,7 +153,7 @@ sub collect_server_candidates {
 
     my $host = first_value(
         $node,
-        qw(IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME hostname ADDRESS Address address)
+        qw(IPAddress IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME Hostname hostname ADDRESS Address address)
     );
     push @{$out}, $node if defined $host && length $host;
 
