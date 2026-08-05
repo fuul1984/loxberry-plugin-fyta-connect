@@ -5,67 +5,188 @@ on:
     tags:
       - "v*"
 
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Vorhandener Release-Tag, zum Beispiel v1.6.1"
+        required: true
+        default: "v1.6.1"
+
 permissions:
   contents: write
 
 jobs:
   build-release:
+    name: Build LoxBerry Release
     runs-on: ubuntu-latest
 
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-      - name: Version aus Tag lesen
+      - name: Tag und Version bestimmen
         id: version
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          set -euo pipefail
 
-          if [ -z "$VERSION" ]; then
-            echo "Keine Version aus Tag ermittelt."
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.release_tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+
+          if [ -z "$TAG" ]; then
+            echo "FEHLER: Kein Release-Tag vorhanden."
             exit 1
           fi
 
+          VERSION="${TAG#v}"
+
+          if [ -z "$VERSION" ]; then
+            echo "FEHLER: Keine Version aus dem Tag ermittelt."
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Ermittelte Version: $VERSION"
+
+          echo "Tag:     $TAG"
+          echo "Version: $VERSION"
 
       - name: Repository-Struktur prüfen
         shell: bash
         run: |
+          set -euo pipefail
+
           test -f plugin.cfg
           test -d bin
           test -d webfrontend
           test -d cron
 
-          echo "Plugin-Dateien im Repository gefunden."
+          echo "Repository-Struktur gefunden:"
+          echo "- plugin.cfg"
+          echo "- bin/"
+          echo "- webfrontend/"
+          echo "- cron/"
 
       - name: Versionsdaten prüfen
         shell: bash
         run: |
+          set -euo pipefail
+
           VERSION="${{ steps.version.outputs.version }}"
 
-          grep -q "^VERSION=${VERSION}$" plugin.cfg
+          PLUGIN_VERSION="$(
+            sed -n \
+              's/^[[:space:]]*VERSION[[:space:]]*=[[:space:]]*//p' \
+              plugin.cfg \
+            | head -n1 \
+            | tr -d '\r[:space:]'
+          )"
 
-          if [ -f release.cfg ]; then
-            grep -q "^VERSION=${VERSION}$" release.cfg
+          echo "Tag-Version:    [$VERSION]"
+          echo "Plugin-Version: [$PLUGIN_VERSION]"
+
+          if [ -z "$PLUGIN_VERSION" ]; then
+            echo "FEHLER: Keine VERSION in plugin.cfg gefunden."
+            exit 1
           fi
 
-          echo "Versionsdaten stimmen mit dem Tag überein."
+          if [ "$PLUGIN_VERSION" != "$VERSION" ]; then
+            echo "FEHLER: plugin.cfg enthält Version $PLUGIN_VERSION statt $VERSION."
+            exit 1
+          fi
+
+          if [ -f release.cfg ]; then
+            RELEASE_VERSION="$(
+              sed -n \
+                's/^[[:space:]]*VERSION[[:space:]]*=[[:space:]]*//p' \
+                release.cfg \
+              | head -n1 \
+              | tr -d '\r[:space:]'
+            )"
+
+            echo "Release-Version: [$RELEASE_VERSION]"
+
+            if [ -z "$RELEASE_VERSION" ]; then
+              echo "FEHLER: Keine VERSION in release.cfg gefunden."
+              exit 1
+            fi
+
+            if [ "$RELEASE_VERSION" != "$VERSION" ]; then
+              echo "FEHLER: release.cfg enthält Version $RELEASE_VERSION statt $VERSION."
+              exit 1
+            fi
+          else
+            echo "Hinweis: release.cfg ist nicht vorhanden."
+          fi
+
+          if [ -f prerelease.cfg ]; then
+            PRERELEASE_VERSION="$(
+              sed -n \
+                's/^[[:space:]]*VERSION[[:space:]]*=[[:space:]]*//p' \
+                prerelease.cfg \
+              | head -n1 \
+              | tr -d '\r[:space:]'
+            )"
+
+            echo "Prerelease-Version: [$PRERELEASE_VERSION]"
+
+            if [ -n "$PRERELEASE_VERSION" ] \
+              && [ "$PRERELEASE_VERSION" != "$VERSION" ]; then
+              echo "FEHLER: prerelease.cfg enthält Version $PRERELEASE_VERSION statt $VERSION."
+              exit 1
+            fi
+          fi
+
+          echo "Versionsdaten stimmen überein."
+
+      - name: AutoUpdate-URL prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+
+          EXPECTED_URL="https://github.com/fuul1984/loxberry-plugin-fyta-connect/releases/download/v${VERSION}/FYTA_Connect_v${VERSION}.zip"
+
+          if [ -f release.cfg ]; then
+            ARCHIVE_URL="$(
+              sed -n \
+                's/^[[:space:]]*ARCHIVEURL[[:space:]]*=[[:space:]]*//p' \
+                release.cfg \
+              | head -n1 \
+              | tr -d '\r'
+            )"
+
+            echo "Erwartete URL:"
+            echo "$EXPECTED_URL"
+
+            echo "Gefundene URL:"
+            echo "$ARCHIVE_URL"
+
+            if [ "$ARCHIVE_URL" != "$EXPECTED_URL" ]; then
+              echo "FEHLER: ARCHIVEURL in release.cfg stimmt nicht."
+              exit 1
+            fi
+          fi
 
       - name: Installationsstruktur vorbereiten
         shell: bash
         run: |
+          set -euo pipefail
+
           rm -rf build
           mkdir -p build/fyta_connect
 
-          # Zentrale Plugin-Datei
           cp plugin.cfg build/fyta_connect/
 
-          # Optionale Installations- und Upgrade-Skripte
           for FILE in \
-            postinstall.sh \
             preinstall.sh \
+            postinstall.sh \
             preupgrade.sh \
             postupgrade.sh \
             postroot.sh
@@ -75,7 +196,6 @@ jobs:
             fi
           done
 
-          # Plugin-Verzeichnisse übernehmen
           for DIR in \
             bin \
             cron \
@@ -90,90 +210,151 @@ jobs:
             fi
           done
 
-          # Konfigurationsordner bewusst leer anlegen.
-          # Eine vorhandene fyta.cfg darf bei Updates nicht ausgeliefert
-          # und dadurch überschrieben werden.
           mkdir -p build/fyta_connect/config
 
-          # Unerwünschte Dateien entfernen
           find build -name ".DS_Store" -delete
           find build -name "._*" -delete
-          find build -name "__MACOSX" -type d -prune -exec rm -rf {} +
           find build -name "*.log" -delete
           find build -name "*.bak" -delete
+
+          find build \
+            -type d \
+            -name "__MACOSX" \
+            -prune \
+            -exec rm -rf {} +
+
+          echo "Erstellte Plugin-Struktur:"
+          find build/fyta_connect -maxdepth 3 -print | sort
 
       - name: Dateirechte setzen
         shell: bash
         run: |
-          find build/fyta_connect/bin \
-            -type f -name "*.pl" \
-            -exec chmod 755 {} \; 2>/dev/null || true
+          set -euo pipefail
 
-          find build/fyta_connect/webfrontend \
-            -type f -name "*.cgi" \
-            -exec chmod 755 {} \; 2>/dev/null || true
+          if [ -d build/fyta_connect/bin ]; then
+            find build/fyta_connect/bin \
+              -type f \
+              -name "*.pl" \
+              -exec chmod 755 {} \;
 
-          find build/fyta_connect/cron \
-            -type f \
-            -exec chmod 755 {} \; 2>/dev/null || true
+            find build/fyta_connect/bin \
+              -type f \
+              -name "*.pm" \
+              -exec chmod 644 {} \;
+          fi
 
-          find build/fyta_connect/uninstall \
-            -type f -name "*.sh" \
-            -exec chmod 755 {} \; 2>/dev/null || true
+          if [ -d build/fyta_connect/webfrontend ]; then
+            find build/fyta_connect/webfrontend \
+              -type f \
+              -name "*.cgi" \
+              -exec chmod 755 {} \;
+          fi
+
+          if [ -d build/fyta_connect/cron ]; then
+            find build/fyta_connect/cron \
+              -type f \
+              -exec chmod 755 {} \;
+          fi
+
+          if [ -d build/fyta_connect/uninstall ]; then
+            find build/fyta_connect/uninstall \
+              -type f \
+              -name "*.sh" \
+              -exec chmod 755 {} \;
+          fi
 
           find build/fyta_connect \
-            -maxdepth 1 -type f -name "*.sh" \
+            -maxdepth 1 \
+            -type f \
+            -name "*.sh" \
             -exec chmod 755 {} \;
+
+          chmod 644 build/fyta_connect/plugin.cfg
 
       - name: Installations-ZIP erstellen
         shell: bash
         run: |
+          set -euo pipefail
+
           VERSION="${{ steps.version.outputs.version }}"
           ZIP_NAME="FYTA_Connect_v${VERSION}.zip"
+
+          rm -f "$ZIP_NAME"
 
           (
             cd build
             zip -r "../${ZIP_NAME}" fyta_connect
           )
 
-          echo "ZIP_NAME=${ZIP_NAME}" >> "$GITHUB_ENV"
+          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"
+
+          echo "Erzeugte Datei:"
+          ls -lh "$ZIP_NAME"
 
       - name: ZIP-Inhalt kontrollieren
         shell: bash
         run: |
-          echo "Erzeugtes Paket:"
+          set -euo pipefail
+
           unzip -l "$ZIP_NAME"
 
-          unzip -l "$ZIP_NAME" \
-            | grep -q "fyta_connect/plugin.cfg"
-
-          # Die Benutzerkonfiguration darf nicht im Updatepaket enthalten sein.
-          if unzip -l "$ZIP_NAME" \
-            | grep -q "fyta_connect/config/fyta.cfg"; then
-              echo "FEHLER: fyta.cfg ist im Installationspaket enthalten."
+          if ! unzip -l "$ZIP_NAME" \
+            | grep -q "fyta_connect/plugin.cfg"; then
+              echo "FEHLER: fyta_connect/plugin.cfg fehlt im ZIP."
               exit 1
           fi
 
-          echo "LoxBerry-Paketstruktur ist korrekt."
+          if unzip -l "$ZIP_NAME" \
+            | grep -q "fyta_connect/config/fyta.cfg"; then
+              echo "FEHLER: fyta.cfg ist im Updatepaket enthalten."
+              exit 1
+          fi
+
+          echo "ZIP-Struktur ist korrekt."
+          echo "Die bestehende fyta.cfg wird durch das Update nicht überschrieben."
 
       - name: Release erstellen oder Asset hochladen
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo "Release existiert bereits. Asset wird ergänzt/ersetzt."
+          set -euo pipefail
+
+          TAG="${{ steps.version.outputs.tag }}"
+
+          echo "Verwende Release-Tag: $TAG"
+          echo "Lade Asset hoch: $ZIP_NAME"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release existiert bereits."
+            echo "Das Asset wird hinzugefügt oder ersetzt."
 
             gh release upload \
-              "$GITHUB_REF_NAME" \
+              "$TAG" \
               "$ZIP_NAME" \
               --clobber
           else
-            echo "Release wird automatisch erstellt."
+            echo "Release existiert noch nicht."
+            echo "Ein neuer Release wird erstellt."
 
             gh release create \
-              "$GITHUB_REF_NAME" \
+              "$TAG" \
               "$ZIP_NAME" \
-              --title "FYTA Connect $GITHUB_REF_NAME" \
+              --title "FYTA Connect $TAG" \
               --generate-notes
           fi
+
+      - name: Ergebnis anzeigen
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${{ steps.version.outputs.tag }}"
+
+          echo "Release erfolgreich verarbeitet."
+          echo
+          echo "Release:"
+          echo "https://github.com/fuul1984/loxberry-plugin-fyta-connect/releases/tag/${TAG}"
+          echo
+          echo "Installationsdatei:"
+          echo "https://github.com/fuul1984/loxberry-plugin-fyta-connect/releases/download/${TAG}/${ZIP_NAME}"
