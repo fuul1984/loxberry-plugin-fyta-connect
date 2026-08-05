@@ -1,0 +1,102 @@
+name: Build LoxBerry Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Version aus Tag lesen
+        id: version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Plugin-Struktur prüfen
+        shell: bash
+        run: |
+          test -f fyta_connect/plugin.cfg
+          test -d fyta_connect/bin
+          test -d fyta_connect/webfrontend
+          test -d fyta_connect/cron
+
+          grep -q "^VERSION=${{ steps.version.outputs.version }}$" \
+            fyta_connect/plugin.cfg
+
+      - name: Unnötige Dateien entfernen
+        shell: bash
+        run: |
+          find fyta_connect -name ".DS_Store" -delete
+          find fyta_connect -name "._*" -delete
+          find fyta_connect -name "*.log" -delete
+          find fyta_connect -name "*.bak" -delete
+
+      - name: Dateirechte setzen
+        shell: bash
+        run: |
+          find fyta_connect/bin -type f -name "*.pl" -exec chmod 755 {} \;
+          find fyta_connect/webfrontend -type f -name "*.cgi" -exec chmod 755 {} \;
+          find fyta_connect/cron -type f -exec chmod 755 {} \;
+
+          if [ -f fyta_connect/postinstall.sh ]; then
+            chmod 755 fyta_connect/postinstall.sh
+          fi
+
+          if [ -f fyta_connect/preupgrade.sh ]; then
+            chmod 755 fyta_connect/preupgrade.sh
+          fi
+
+          if [ -f fyta_connect/postupgrade.sh ]; then
+            chmod 755 fyta_connect/postupgrade.sh
+          fi
+
+      - name: Installations-ZIP erstellen
+        shell: bash
+        run: |
+          ZIP_NAME="FYTA_Connect_v${{ steps.version.outputs.version }}.zip"
+
+          zip -r "$ZIP_NAME" fyta_connect \
+            -x "*/.git/*" \
+               "*/.github/*" \
+               "*/.DS_Store" \
+               "*/__MACOSX/*" \
+               "*/._*"
+
+          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"
+
+      - name: ZIP-Inhalt kontrollieren
+        shell: bash
+        run: |
+          unzip -l "$ZIP_NAME"
+
+          unzip -l "$ZIP_NAME" | grep -q \
+            "fyta_connect/plugin.cfg"
+
+      - name: Release erstellen und ZIP hochladen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload \
+              "$GITHUB_REF_NAME" \
+              "$ZIP_NAME" \
+              --clobber
+          else
+            gh release create \
+              "$GITHUB_REF_NAME" \
+              "$ZIP_NAME" \
+              --title "FYTA Connect $GITHUB_REF_NAME" \
+              --generate-notes
+          fi
