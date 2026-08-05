@@ -14,14 +14,42 @@ my $token = html_escape($cfg->{FYTA_TOKEN} // '');
 my $port = html_escape($cfg->{UDP_PORT} // '5007');
 my $interval = html_escape($cfg->{INTERVAL} // '15');
 my $udp_enabled = ($cfg->{UDP_ENABLED} // 'true') eq 'true' ? 'checked' : '';
-my $selected_no = $cfg->{MINISERVER_NO} // '1';
+my $selected_no = $cfg->{MINISERVER_NO} // '';
 my $current_host = $cfg->{UDP_HOST} // '';
 my @servers = get_servers();
 my $options = '';
 
 if (@servers) {
-    for my $ms (@servers) {
-        my $sel = ($ms->{no} eq $selected_no || (!$selected_no && $ms->{host} eq $current_host)) ? ' selected' : '';
+    # Auswahlreihenfolge:
+    # 1. gespeicherte Miniserver-Nummer
+    # 2. gespeicherte IP/Hostname
+    # 3. erster verfügbarer Miniserver
+    my $selected_index = 0;
+    my $found = 0;
+
+    if (defined $selected_no && length $selected_no) {
+        for my $i (0 .. $#servers) {
+            if (defined $servers[$i]{no} && "$servers[$i]{no}" eq "$selected_no") {
+                $selected_index = $i;
+                $found = 1;
+                last;
+            }
+        }
+    }
+
+    if (!$found && defined $current_host && length $current_host) {
+        for my $i (0 .. $#servers) {
+            if (lc($servers[$i]{host} // '') eq lc($current_host)) {
+                $selected_index = $i;
+                $found = 1;
+                last;
+            }
+        }
+    }
+
+    for my $i (0 .. $#servers) {
+        my $ms = $servers[$i];
+        my $sel = $i == $selected_index ? ' selected' : '';
         my $label = html_escape($ms->{name});
         my $host = html_escape($ms->{host});
         my $no = html_escape($ms->{no});
@@ -29,9 +57,10 @@ if (@servers) {
     }
 } else {
     my $safe = html_escape($current_host);
-    $options = qq{<option value="" selected>Keine Miniserver aus LoxBerry gefunden</option>};
+    $options = qq{<option value="" selected>Kein Miniserver in LoxBerry konfiguriert</option>};
     $options .= qq{<option value="manual">Bisheriges Ziel: $safe</option>} if length $safe;
 }
+
 
 LoxBerry::Web::lbheader("FYTA Connect – Einstellungen", "", "");
 print <<'HTML';
@@ -62,19 +91,87 @@ exit 0;
 sub get_servers {
     my @raw = eval { LoxBerry::System::get_miniservers() };
     return () if $@;
-    @raw = @{$raw[0]} if @raw == 1 && ref($raw[0]) eq 'ARRAY';
+
+    my @candidates;
+    collect_server_candidates(\@candidates, \@raw);
+
     my @out;
-    my $idx = 0;
-    for my $entry (@raw) {
+    my %seen;
+    my $fallback_no = 0;
+
+    for my $entry (@candidates) {
         next unless ref($entry) eq 'HASH';
-        $idx++;
-        my $no = first_value($entry, qw(MSNO msno NO no NUMBER number)) // $idx;
-        my $name = first_value($entry, qw(NAME Name name MSNAME msname LOCATION Location location)) // "Miniserver $no";
-        my $host = first_value($entry, qw(IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME hostname));
+
+        my $host = first_value(
+            $entry,
+            qw(IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME hostname ADDRESS Address address)
+        );
         next unless defined $host && length $host;
-        push @out, { no => "$no", name => "$name", host => "$host" };
+
+        # Keine doppelten Einträge, falls dieselbe Struktur mehrfach traversiert wurde.
+        my $host_key = lc($host);
+        next if $seen{$host_key}++;
+
+        $fallback_no++;
+        my $no = first_value(
+            $entry,
+            qw(MSNO msno NO no NUMBER number NR nr INDEX index)
+        );
+        $no = $fallback_no unless defined $no && length $no;
+
+        my $name = first_value(
+            $entry,
+            qw(NAME Name name MSNAME msname LOCATION Location location FRIENDLYNAME FriendlyName friendlyname)
+        );
+        $name = "Miniserver $no" unless defined $name && length $name;
+
+        push @out, {
+            no   => "$no",
+            name => "$name",
+            host => "$host",
+        };
     }
-    return @out;
+
+    return sort {
+        ($a->{no} =~ /^\d+$/ && $b->{no} =~ /^\d+$/)
+            ? $a->{no} <=> $b->{no}
+            : $a->{no} cmp $b->{no}
+    } @out;
 }
-sub first_value { my ($h,@k)=@_; for my $k (@k){ return $h->{$k} if exists $h->{$k} && defined $h->{$k} && length $h->{$k}; } return undef; }
+
+sub collect_server_candidates {
+    my ($out, $node, $depth) = @_;
+    $depth //= 0;
+    return if $depth > 8;
+
+    if (ref($node) eq 'ARRAY') {
+        collect_server_candidates($out, $_, $depth + 1) for @{$node};
+        return;
+    }
+
+    return unless ref($node) eq 'HASH';
+
+    my $host = first_value(
+        $node,
+        qw(IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME hostname ADDRESS Address address)
+    );
+    push @{$out}, $node if defined $host && length $host;
+
+    for my $value (values %{$node}) {
+        collect_server_candidates($out, $value, $depth + 1)
+            if ref($value) eq 'HASH' || ref($value) eq 'ARRAY';
+    }
+}
+
+sub first_value {
+    my ($h, @keys) = @_;
+    for my $key (@keys) {
+        return $h->{$key}
+            if exists $h->{$key}
+            && defined $h->{$key}
+            && length $h->{$key};
+    }
+    return undef;
+}
+
 sub html_escape { my ($t)=@_; $t='' unless defined $t; $t=~s/&/&amp;/g;$t=~s/</&lt;/g;$t=~s/>/&gt;/g;$t=~s/"/&quot;/g;$t=~s/'/&#39;/g; return $t; }

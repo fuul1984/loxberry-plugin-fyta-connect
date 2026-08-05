@@ -11,7 +11,7 @@ push @errors,'Kein FYTA-Token gewählt.' if $token eq '';
 $cfg->{UDP_ENABLED}=defined $cgi->param('udp_enabled')?'true':'false';
 my $msno=trim($cgi->param('miniserver_no')//'');
 my ($host,$name)=resolve_server($msno);
-if(!$host){push @errors,'Bitte einen gültigen LoxBerry-Miniserver auswählen.';}else{$cfg->{MINISERVER_NO}=$msno;$cfg->{UDP_HOST}=$host;$cfg->{LOXONE_HOST}=$host;}
+if(!$host){push @errors,'Bitte einen gültigen LoxBerry-Miniserver auswählen.';}else{$cfg->{MINISERVER_NO}=$msno;$cfg->{MINISERVER_NAME}=$name;$cfg->{UDP_HOST}=$host;$cfg->{LOXONE_HOST}=$host;}
 my $port=trim($cgi->param('udp_port')//'');
 if($port!~/^\d+$/||$port<1||$port>65535){push @errors,'Der UDP-Port muss zwischen 1 und 65535 liegen.'}else{$cfg->{UDP_PORT}=$port}
 my $interval=trim($cgi->param('interval')//'');
@@ -28,7 +28,87 @@ print qq{<div class="$class"><h2>$title</h2>$details</div><div class="fyta-actio
 print '<a class="fyta-btn" href="sync.cgi">Jetzt synchronisieren</a>' if $saved;
 print '<a class="fyta-btn fyta-grey" href="settings.cgi">Zurück zu den Einstellungen</a><a class="fyta-btn fyta-grey" href="index.cgi">Zur Startseite</a></div></div></div>';
 LoxBerry::Web::lbfooter();exit($saved?0:1);
-sub resolve_server{my($wanted)=@_;my @raw=eval{LoxBerry::System::get_miniservers()};return unless !$@;@raw=@{$raw[0]} if @raw==1&&ref($raw[0]) eq 'ARRAY';my $i=0;for my $e(@raw){next unless ref($e) eq 'HASH';$i++;my $no=first($e,qw(MSNO msno NO no NUMBER number))//$i;next unless "$no" eq "$wanted";my $h=first($e,qw(IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME hostname));my $n=first($e,qw(NAME Name name MSNAME msname LOCATION Location location))//"Miniserver $no";return($h,$n)}return}
-sub first{my($h,@k)=@_;for(@k){return $h->{$_} if exists$h->{$_}&&defined$h->{$_}&&length$h->{$_}}return}
+sub resolve_server {
+    my ($wanted) = @_;
+    my @servers = get_servers();
+
+    for my $server (@servers) {
+        next unless defined $wanted && length $wanted;
+        return ($server->{host}, $server->{name})
+            if "$server->{no}" eq "$wanted";
+    }
+
+    return;
+}
+
+sub get_servers {
+    my @raw = eval { LoxBerry::System::get_miniservers() };
+    return () if $@;
+
+    my @candidates;
+    collect_server_candidates(\@candidates, \@raw);
+
+    my @out;
+    my %seen;
+    my $fallback_no = 0;
+
+    for my $entry (@candidates) {
+        next unless ref($entry) eq 'HASH';
+        my $host = first(
+            $entry,
+            qw(IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME hostname ADDRESS Address address)
+        );
+        next unless defined $host && length $host;
+        next if $seen{lc($host)}++;
+
+        $fallback_no++;
+        my $no = first($entry, qw(MSNO msno NO no NUMBER number NR nr INDEX index));
+        $no = $fallback_no unless defined $no && length $no;
+        my $name = first(
+            $entry,
+            qw(NAME Name name MSNAME msname LOCATION Location location FRIENDLYNAME FriendlyName friendlyname)
+        );
+        $name = "Miniserver $no" unless defined $name && length $name;
+
+        push @out, { no => "$no", name => "$name", host => "$host" };
+    }
+
+    return @out;
+}
+
+sub collect_server_candidates {
+    my ($out, $node, $depth) = @_;
+    $depth //= 0;
+    return if $depth > 8;
+
+    if (ref($node) eq 'ARRAY') {
+        collect_server_candidates($out, $_, $depth + 1) for @{$node};
+        return;
+    }
+    return unless ref($node) eq 'HASH';
+
+    my $host = first(
+        $node,
+        qw(IPADDRESS Ipaddress ipaddress IP ip HOST Host host HOSTNAME hostname ADDRESS Address address)
+    );
+    push @{$out}, $node if defined $host && length $host;
+
+    for my $value (values %{$node}) {
+        collect_server_candidates($out, $value, $depth + 1)
+            if ref($value) eq 'HASH' || ref($value) eq 'ARRAY';
+    }
+}
+
+sub first {
+    my ($h, @keys) = @_;
+    for my $key (@keys) {
+        return $h->{$key}
+            if exists $h->{$key}
+            && defined $h->{$key}
+            && length $h->{$key};
+    }
+    return;
+}
+
 sub trim{my($v)=@_;$v='' unless defined$v;$v=~s/^\s+|\s+$//g;return$v}
 sub esc{my($t)=@_;$t='' unless defined$t;$t=~s/&/&amp;/g;$t=~s/</&lt;/g;$t=~s/>/&gt;/g;$t=~s/"/&quot;/g;return$t}

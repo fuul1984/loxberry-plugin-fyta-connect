@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.1 – 2026-08-05
+
+- Miniserver-Erkennung für unterschiedliche Rückgabeformen von LoxBerry 4 korrigiert.
+- Gespeicherter Miniserver wird zuerst über die Miniserver-Nummer und anschließend über IP/Hostname wiedergewählt.
+- Falls keine bisherige Auswahl passt, wird automatisch der erste konfigurierte Miniserver ausgewählt.
+- Miniserver-Name wird zusätzlich in der Plugin-Konfiguration gespeichert.
+- GitHub-Release-Workflow auf Version 1.5.1 vorbereitet.
+
 ## 1.5.0 – 2026-08-05
 
 - Benutzereinstellungen bleiben bei Plugin-Updates erhalten.

@@ -1,13 +1,15 @@
-# FYTA Connect v1.5.0
+# FYTA Connect v1.5.1
 
-## Highlights
+## Korrekturen
 
-- **Update-sichere Konfiguration:** Token, Miniserver, UDP-Port, Intervall und Pluginstatus bleiben bei Updates erhalten.
-- **Miniserver-Dropdown:** Auswahl direkt aus den im LoxBerry hinterlegten Miniservers.
-- **Aktiv/Deaktiv auf der Startseite:** Automatische Abfragen und UDP-Versand lassen sich sofort pausieren.
-- **Klare Betriebsanzeige:** „Betriebsbereit“, „Kein Token gewählt“, „Kein Miniserver gewählt“ oder „Plugin deaktiviert“.
-- Neue Konfigurationswerte werden bei Upgrades ergänzt, ohne vorhandene Werte zu überschreiben.
+- Miniserver-Dropdown mit LoxBerry 4 kompatibler gemacht.
+- Bereits ausgewählter Miniserver wird nach Updates wieder automatisch markiert.
+- Fallback-Auswahl über gespeicherte IP-Adresse bzw. Hostname.
+- Automatische Auswahl des ersten Miniserver, wenn noch keine gültige Auswahl gespeichert ist.
+- Miniserver-Name wird zusätzlich gespeichert.
 
-## Upgrade-Hinweis
+## Veröffentlichung
 
-Beim Update auf 1.5.0 wird die bestehende `fyta.cfg` vor der Installation gesichert, danach wiederhergestellt und nur um fehlende Standardschlüssel ergänzt.
+1. Inhalt dieses Repository-Pakets in den `main`-Branch hochladen.
+2. Tag `v1.5.1` erstellen und veröffentlichen.
+3. Die GitHub Action erstellt automatisch `FYTA_Connect_v1.5.1.zip` und hängt es an den Release.
