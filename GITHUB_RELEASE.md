@@ -1,15 +1,17 @@
-# FYTA Connect v1.5.1
+# FYTA Connect v1.6.0
 
-## Korrekturen
+## Release-Technik
 
-- Miniserver-Dropdown mit LoxBerry 4 kompatibler gemacht.
-- Bereits ausgewählter Miniserver wird nach Updates wieder automatisch markiert.
-- Fallback-Auswahl über gespeicherte IP-Adresse bzw. Hostname.
-- Automatische Auswahl des ersten Miniserver, wenn noch keine gültige Auswahl gespeichert ist.
-- Miniserver-Name wird zusätzlich gespeichert.
+- GitHub Actions erzeugt beim Tag `v1.6.0` automatisch das installierbare Asset `FYTA_Connect_v1.6.0.zip`.
+- Das Paket enthält `fyta_connect/plugin.cfg` an der von LoxBerry erwarteten Position.
+- Versionsnummer, Tag und AutoUpdate-URL werden vor dem Build geprüft.
+- Die aktive `fyta.cfg` ist nicht im Installationspaket enthalten und kann bei einem Update daher nicht überschrieben werden.
+- Bei einer Erstinstallation legt `postinstall.sh` die Standardkonfiguration an.
 
 ## Veröffentlichung
 
-1. Inhalt dieses Repository-Pakets in den `main`-Branch hochladen.
-2. Tag `v1.5.1` erstellen und veröffentlichen.
-3. Die GitHub Action erstellt automatisch `FYTA_Connect_v1.5.1.zip` und hängt es an den Release.
+1. Inhalt dieses Repositorys in den Branch `main` übernehmen.
+2. Commit erstellen.
+3. Tag `v1.6.0` veröffentlichen.
+4. Unter **Actions** den Lauf `Build LoxBerry Release` prüfen.
+5. Im Release muss danach `FYTA_Connect_v1.6.0.zip` zusätzlich zu den beiden GitHub-Quellarchiven erscheinen.

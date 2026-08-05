@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0
+
+- Automatischer GitHub-Release-Build stabilisiert.
+- Installierbares LoxBerry-ZIP wird beim Tag `v1.6.0` automatisch erzeugt und angehängt.
+- Build prüft die Plugin-Struktur und Versionskonsistenz.
+- Aktive `fyta.cfg` wird nicht in das Update-Paket aufgenommen, damit Benutzereinstellungen erhalten bleiben.
+- Workflow hängt nicht mehr von zusätzlichen Perl-Modulen des GitHub-Runners ab.
+
 ## 1.5.1 – 2026-08-05
 
 - Miniserver-Erkennung für unterschiedliche Rückgabeformen von LoxBerry 4 korrigiert.
