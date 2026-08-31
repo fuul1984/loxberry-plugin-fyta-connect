@@ -2,9 +2,11 @@ package logger;
 
 use strict;
 use warnings;
+use utf8;
 
 use POSIX qw(strftime);
 use File::Path qw(make_path);
+use Encode qw(decode FB_CROAK);
 
 our $LOG_DIR       = "/opt/loxberry/log/plugins/fyta_connect";
 our $LOG_FILE      = "$LOG_DIR/fyta_connect.log";
@@ -15,6 +17,12 @@ our $MAX_LOG_SIZE  = 1024 * 1024;
 # Einstellungen
 our $CONSOLE       = 1;    # Ausgabe auf STDOUT
 our $DEBUG         = 0;    # Debugmeldungen schreiben
+
+# Alle Logausgaben explizit als UTF-8 schreiben.
+# Dadurch entstehen weder "Wide character in print"-Warnungen
+# noch Mojibake bei Umlauten/Sonderzeichen.
+binmode(STDOUT, ":encoding(UTF-8)");
+binmode(STDERR, ":encoding(UTF-8)");
 
 #########################################################
 # öffentliche Funktionen
@@ -57,6 +65,13 @@ sub _write
 
     $text //= "";
 
+    # Ältere Plugin-Module liefern teilweise UTF-8 als Byte-String,
+    # neuere Module echte Unicode-Strings. Beides hier vereinheitlichen.
+    if (!utf8::is_utf8($text)) {
+        my $decoded = eval { decode("UTF-8", $text, FB_CROAK) };
+        $text = $decoded if defined $decoded && !$@;
+    }
+
     # Mehrzeilige Texte vermeiden
     $text =~ s/\r//g;
     $text =~ s/\n/ /g;
@@ -84,7 +99,7 @@ sub _write
     #
     # Ausgabe in Datei
     #
-    if (open(my $fh, ">>", $LOG_FILE)) {
+    if (open(my $fh, ">>:encoding(UTF-8)", $LOG_FILE)) {
         print $fh $line;
         close($fh);
     }
@@ -116,7 +131,7 @@ sub _rotate_log_if_needed
 
     unlink($LOG_FILE);
 
-    if (open(my $fh, ">", $LOG_FILE)) {
+    if (open(my $fh, ">:encoding(UTF-8)", $LOG_FILE)) {
 
         my $timestamp = strftime(
             "%Y-%m-%d %H:%M:%S",

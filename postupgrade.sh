@@ -1,14 +1,15 @@
 #!/bin/bash
-# FYTA Connect: Einstellungen nach dem Upgrade wiederherstellen und neue Schlüssel ergänzen.
+# FYTA Connect: Einstellungen/Auth-Daten wiederherstellen und neue Schlüssel ergänzen.
 set -u
 LBHOME="${LBHOMEDIR:-/opt/loxberry}"
 CFG_DIR="$LBHOME/config/plugins/fyta_connect"
 CFG="$CFG_DIR/fyta.cfg"
-BACKUP="/tmp/fyta_connect_upgrade/fyta.cfg"
-mkdir -p "$CFG_DIR"
-if [ -f "$BACKUP" ]; then
-    cp -p "$BACKUP" "$CFG"
-fi
+DATA_DIR="$LBHOME/data/plugins/fyta_connect"
+BACKUP_DIR="/tmp/fyta_connect_upgrade"
+mkdir -p "$CFG_DIR" "$DATA_DIR"
+[ -f "$BACKUP_DIR/fyta.cfg" ] && cp -p "$BACKUP_DIR/fyta.cfg" "$CFG"
+[ -f "$BACKUP_DIR/auth.json" ] && cp -p "$BACKUP_DIR/auth.json" "$DATA_DIR/auth.json"
+[ -f "$BACKUP_DIR/.auth.key" ] && cp -p "$BACKUP_DIR/.auth.key" "$DATA_DIR/.auth.key"
 [ -f "$CFG" ] || touch "$CFG"
 ensure_key() {
     local key="$1" value="$2"
@@ -16,6 +17,7 @@ ensure_key() {
 }
 ensure_key PLUGIN_ENABLED true
 ensure_key FYTA_TOKEN ""
+ensure_key FYTA_EMAIL ""
 ensure_key MINISERVER_NO ""
 ensure_key MINISERVER_NAME ""
 ensure_key UDP_ENABLED true
@@ -27,7 +29,9 @@ ensure_key LOXONE_HOST ""
 ensure_key LOXONE_PORT 443
 ensure_key LOXONE_USER ""
 ensure_key LOXONE_PASSWORD ""
-chown loxberry:loxberry "$CFG" 2>/dev/null || true
+chown -R loxberry:loxberry "$CFG_DIR" "$DATA_DIR" 2>/dev/null || true
 chmod 600 "$CFG" 2>/dev/null || true
-rm -rf /tmp/fyta_connect_upgrade
+[ -f "$DATA_DIR/auth.json" ] && chmod 600 "$DATA_DIR/auth.json" 2>/dev/null || true
+[ -f "$DATA_DIR/.auth.key" ] && chmod 600 "$DATA_DIR/.auth.key" 2>/dev/null || true
+rm -rf "$BACKUP_DIR"
 exit 0

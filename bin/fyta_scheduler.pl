@@ -2,6 +2,10 @@
 
 use strict;
 use warnings;
+use utf8;
+
+binmode STDOUT, ":encoding(UTF-8)";
+binmode STDERR, ":encoding(UTF-8)";
 
 use Fcntl qw(:flock);
 use File::Path qw(make_path);
@@ -61,17 +65,22 @@ if ($result == -1) {
     die "fyta_connect.pl konnte nicht gestartet werden: $!\n";
 }
 
-# Auch einen fehlgeschlagenen Abruf erst nach dem eingestellten Intervall
-# erneut versuchen. Das verhindert API-Anfragen im Minutentakt.
-if (open(my $state_fh, ">", $state_file)) {
-    print $state_fh $now;
-    close $state_fh;
+my $exit_code = $result >> 8;
+
+# Nur erfolgreiche Worker-Läufe verschieben den regulären Intervallzeitpunkt.
+# Nach Reboot-, Netzwerk- oder temporären API-Fehlern versucht der minütliche
+# LoxBerry-Cron dadurch beim nächsten Lauf automatisch erneut.
+if ($exit_code == 0) {
+    if (open(my $state_fh, ">", $state_file)) {
+        print $state_fh time();
+        close $state_fh;
+    }
+    else {
+        die "Kann Zeitstempel nicht speichern: $!\n";
+    }
 }
 else {
-    die "Kann Zeitstempel nicht speichern: $!\n";
+    die "fyta_connect.pl endete mit Fehlercode $exit_code\n";
 }
-
-my $exit_code = $result >> 8;
-die "fyta_connect.pl endete mit Fehlercode $exit_code\n" if $exit_code != 0;
 
 exit 0;

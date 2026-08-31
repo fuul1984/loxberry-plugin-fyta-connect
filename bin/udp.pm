@@ -2,6 +2,7 @@ package udp;
 
 use strict;
 use warnings;
+use utf8;
 
 use IO::Socket::INET;
 

@@ -2,6 +2,7 @@ package config;
 
 use strict;
 use warnings;
+use utf8;
 use File::Basename qw(dirname);
 use File::Path qw(make_path);
 
@@ -10,6 +11,7 @@ our $CONFIG_FILE = "/opt/loxberry/config/plugins/fyta_connect/fyta.cfg";
 our %DEFAULTS = (
     PLUGIN_ENABLED => 'true',
     FYTA_TOKEN      => '',
+    FYTA_EMAIL      => '',
     MINISERVER_NO   => '1',
     UDP_ENABLED     => 'true',
     UDP_HOST        => '',
@@ -63,7 +65,7 @@ sub write_config
 
     # Bewusst feste Reihenfolge für bessere Lesbarkeit und Upgrade-Stabilität.
     my @ordered = qw(
-        PLUGIN_ENABLED FYTA_TOKEN MINISERVER_NO UDP_ENABLED UDP_HOST UDP_PORT
+        PLUGIN_ENABLED FYTA_TOKEN FYTA_EMAIL MINISERVER_NO UDP_ENABLED UDP_HOST UDP_PORT
         INTERVAL LOXONE_SSL LOXONE_HOST LOXONE_PORT LOXONE_USER LOXONE_PASSWORD
     );
     my %written;

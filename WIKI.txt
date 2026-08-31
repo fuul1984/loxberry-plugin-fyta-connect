@@ -1,0 +1,150 @@
+====== FYTA Connect ======
+
+**Status:** Stable / Release  
+**Version:** 1.9.0  
+**Minimum LoxBerry:** 4.0.0
+
+FYTA Connect verbindet FYTA-Pflanzensensoren mit LoxBerry und Loxone. Das Plugin liest Pflanzen- und Sensorwerte periodisch aus und sendet ausgewählte Werte als numerische UDP-Telegramme an einen Loxone Miniserver.
+
+===== Funktionen =====
+
+  * Automatische Erkennung der verfügbaren FYTA-Pflanzen
+  * Dynamische Verarbeitung der von FYTA bereitgestellten Messwerte
+  * UDP-Ausgabe an Loxone
+  * Analoge Messwerte als echte numerische Werte
+  * Boolesche Werte als ''1'' und ''0''
+  * Konfigurierbares Abrufintervall
+  * Scheduler/Worker-Architektur mit Schutz gegen parallele Läufe
+  * Dashboard mit Status und letztem erfolgreichen Lauf
+  * Manueller Sync und UDP-Test
+  * Globaler Heartbeat ''FYTA_Heartbeat=1/0''
+  * Optionaler Aktualitätswert pro Pflanze ''FYTA_<Pflanze>_Aktuell=1/0''
+  * Update-sichere Konfiguration
+  * Geschützter Auth-Speicher
+  * Responsive deutsche Oberfläche
+  * UTF-8-sicheres Logging und CGI-Ausgabe
+
+===== Voraussetzungen =====
+
+  * LoxBerry 4.0.0 oder neuer
+  * FYTA-Konto mit erreichbarer FYTA-Webschnittstelle
+  * Mindestens ein in LoxBerry konfigurierter Loxone Miniserver für UDP
+  * Netzwerkzugriff von LoxBerry auf FYTA und den Miniserver
+
+===== Installation =====
+
+  - ''FYTA_Connect_v1.9.0.zip'' herunterladen.
+  - Im LoxBerry Plugin Manager installieren bzw. aktualisieren.
+  - FYTA Connect öffnen.
+  - FYTA-Zugang einrichten.
+  - Miniserver, UDP-Port und Intervall wählen.
+  - Synchronisation ausführen und Werte prüfen.
+
+===== Einrichtung und Einstellungen =====
+
+==== FYTA-Zugang ====
+
+Die E-Mail-Adresse wird in der Plugin-Konfiguration gespeichert. Das Passwort wird getrennt davon geschützt gespeichert und nicht im Klartext in ''fyta.cfg'' abgelegt. Passwort und vollständige Tokens werden nicht im Plugin-Log ausgegeben.
+
+Ein vorhandener API-Token kann übernommen werden. Bei abgelaufenem bzw. abgewiesenem Access-Token kann FYTA Connect automatisch eine erneute Anmeldung durchführen, sofern E-Mail und Passwort hinterlegt sind.
+
+==== Miniserver und UDP ====
+
+Der Miniserver wird aus der LoxBerry-Grundkonfiguration ausgewählt. Der UDP-Port ist frei konfigurierbar. Bestehende Miniserver- und UDP-Einstellungen bleiben beim Update erhalten.
+
+==== Intervall ====
+
+FYTA Connect verwendet das Grundmuster:
+
+  LoxBerry Cron -> Scheduler -> Intervallprüfung -> Worker
+
+Der Scheduler entscheidet nur, ob ein Abruf fällig ist. Der Worker führt FYTA-Abruf, Verarbeitung und UDP-Ausgabe aus. Parallele Worker-Läufe werden verhindert.
+
+===== Pflanzen und Werte =====
+
+FYTA Connect verarbeitet die tatsächlich von FYTA gelieferten Pflanzen- und Sensorwerte. Nicht jeder Sensor muss dieselben Messgrößen besitzen.
+
+Typische Werte sind beispielsweise:
+
+  * Temperatur
+  * Bodenfeuchtigkeit
+  * Licht
+  * Salinity/Nährstoffwerte
+  * Batterie
+  * weitere von FYTA bereitgestellte Messwerte
+
+===== UDP / Loxone =====
+
+Beispiele:
+
+<code>
+FYTA_Frangipani_Temperature=22.4
+FYTA_Frangipani_Moisture=38
+FYTA_Frangipani_Aktuell=1
+FYTA_Heartbeat=1
+</code>
+
+Analoge Messwerte werden als Zahlen übertragen. Digitale Werte werden als ''1'' oder ''0'' gesendet.
+
+==== Heartbeat ====
+
+''FYTA_Heartbeat=1'' bedeutet, dass ein Plugin-Lauf die FYTA-Daten erfolgreich verarbeitet hat und der Heartbeat per UDP gesendet werden konnte.
+
+Bei einem fehlgeschlagenen Lauf versucht FYTA Connect ''FYTA_Heartbeat=0'' zu senden.
+
+Der Heartbeat bewertet den Plugin-/Abrufzustand und nicht die Aktualität jeder einzelnen Pflanze.
+
+==== Aktuell ====
+
+Der optionale Wert
+
+<code>
+FYTA_<Pflanze>_Aktuell=1/0
+</code>
+
+zeigt, ob die Daten der jeweiligen Pflanze innerhalb der konfigurierten Aktualitätsgrenze liegen.
+
+  * ''1'' = Daten gelten als aktuell
+  * ''0'' = Daten sind älter als die konfigurierte Grenze bzw. nicht ausreichend aktuell
+
+Daher kann ''FYTA_Heartbeat=1'' gleichzeitig mit ''FYTA_<Pflanze>_Aktuell=0'' auftreten.
+
+===== Status =====
+
+Das Dashboard zeigt unter anderem den Pluginstatus und Informationen zur letzten Synchronisation. Der letzte erfolgreiche Lauf wird nur nach erfolgreicher Verarbeitung aktualisiert.
+
+===== Logging =====
+
+FYTA Connect verwendet eine zentrale Protokollierung. Umlaute und Sonderzeichen werden als UTF-8 geschrieben. Passwörter und vollständige Tokens werden nicht geloggt.
+
+===== Fehlerbehebung =====
+
+==== Kein Miniserver gewählt ====
+
+In den Einstellungen einen in LoxBerry konfigurierten Miniserver auswählen und speichern.
+
+==== FYTA-Anmeldung schlägt fehl ====
+
+E-Mail und Passwort prüfen. Falls Zugangsdaten geändert wurden, Passwort erneut eingeben und speichern.
+
+==== Worker läuft bereits ====
+
+Ein paralleler Start wurde erkannt und absichtlich übersprungen. Dadurch werden gleichzeitige Cron- und manuelle Abrufe verhindert.
+
+==== Keine aktuellen Pflanzenwerte ====
+
+Den Wert ''Aktuell'' und die konfigurierte Aktualitätsgrenze prüfen. Ein funktionierender Heartbeat bedeutet nicht automatisch, dass jeder FYTA-Sensor neue Daten geliefert hat.
+
+===== Update =====
+
+Das Update von 1.7.0 auf 1.9.0 ist update-sicher ausgelegt. Vorhandene Einstellungen sowie geschützte Auth-Daten werden gesichert und wiederhergestellt. Neue Konfigurationsschlüssel werden nur ergänzt.
+
+===== GitHub =====
+
+Repository: ''fuul1984/loxberry-plugin-fyta-connect''
+
+Release-Tag für diese Version: ''v1.9.0''
+
+===== Version / Changelog =====
+
+Version 1.9.0 konsolidiert die seit der letzten offiziellen Version 1.7.0 getesteten Verbesserungen in den Bereichen Authentifizierung, Worker/Scheduler-Robustheit, Heartbeat/Aktualität, UTF-8, mobile Oberfläche und Update-Sicherheit.

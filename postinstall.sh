@@ -14,6 +14,7 @@ ensure_key() {
 }
 ensure_key PLUGIN_ENABLED true
 ensure_key FYTA_TOKEN ""
+ensure_key FYTA_EMAIL ""
 ensure_key MINISERVER_NO ""
 ensure_key MINISERVER_NAME ""
 ensure_key UDP_ENABLED true

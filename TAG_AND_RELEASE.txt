@@ -1,0 +1,21 @@
+Git-Tag:
+v1.9.0
+
+GitHub-Release-Titel:
+FYTA Connect v1.9.0
+
+Release-Kanal:
+Stable / Release
+
+Release-Asset:
+FYTA_Connect_v1.9.0.zip
+
+Empfohlener Ablauf:
+1. Dateien aus dem GitHub-Paket ins Repository übernehmen.
+2. Commit auf main erstellen.
+3. Prüfen, dass plugin.cfg, release.cfg und prerelease.cfg VERSION=1.9.0 enthalten.
+4. Tag v1.9.0 auf genau diesen Commit setzen und pushen.
+5. GitHub Action durchlaufen lassen bzw. Release-Asset FYTA_Connect_v1.9.0.zip hochladen.
+6. GITHUB_RELEASE.md als Release-Beschreibung verwenden.
+7. Release als Stable/Latest veröffentlichen.
+8. WIKI.txt in die LoxWiki/DokuWiki-Seite übernehmen.
