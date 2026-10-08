@@ -50,10 +50,16 @@ my $last_run =
     $status->{LAST_RUN} // "Noch keine Synchronisation";
 
 my $last_success =
-    $status->{LAST_SUCCESS} // "Noch keine erfolgreiche Übertragung";
+    $status->{LAST_SEND} || "Noch keine erfolgreiche Übertragung";
 
 my $last_success_epoch =
     $status->{LAST_SUCCESS_EPOCH} // "";
+my $scheduler_epoch = "/opt/loxberry/data/plugins/fyta_connect/last_run.timestamp";
+my $last_scheduled = 0;
+if (open my $sfh, "<", $scheduler_epoch) {
+    my $raw = <$sfh>; close $sfh;
+    $last_scheduled = $raw if defined $raw && $raw =~ /^\d+$/;
+}
 
 my $plants =
     $status->{PLANTS} // 0;
@@ -76,12 +82,10 @@ my $message =
 my $next_sync = "Noch nicht berechenbar";
 
 if (
-    defined $last_success_epoch
-    && $last_success_epoch =~ /^\d+$/
-    && $last_success_epoch > 0
+    ($last_scheduled > 0 || (defined $last_success_epoch && $last_success_epoch =~ /^\d+$/ && $last_success_epoch > 0))
 ) {
     my $next_epoch =
-        $last_success_epoch + ($interval * 60);
+        $last_scheduled > 0 ? $last_scheduled + ($interval * 60) : $last_success_epoch + ($interval * 60);
 
     $next_sync = strftime(
         "%Y-%m-%d %H:%M:%S",

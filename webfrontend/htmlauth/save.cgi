@@ -33,6 +33,8 @@ if($password ne '' && $email eq ''){
 }
 
 $cfg->{UDP_ENABLED}=defined $cgi->param('udp_enabled')?'true':'false';
+my $send_mode=trim($cgi->param('udp_send_mode')//'all');
+if($send_mode ne 'all' && $send_mode ne 'changes'){push @errors,'Ungültiges UDP-Sendeverhalten.'}else{$cfg->{UDP_SEND_MODE}=$send_mode}
 my $msno=trim($cgi->param('miniserver_no')//'');
 my ($host,$name)=resolve_server($msno);
 if(!$host){push @errors,'Bitte einen gültigen LoxBerry-Miniserver auswählen.';}else{$cfg->{MINISERVER_NO}=$msno;$cfg->{MINISERVER_NAME}=$name;$cfg->{UDP_HOST}=$host;$cfg->{LOXONE_HOST}=$host;}

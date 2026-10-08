@@ -38,6 +38,7 @@ if ($is_udp_test) {
     $view_cfg->{INTERVAL} = scalar($cgi->param('interval') // '15');
     $view_cfg->{MINISERVER_NO} = scalar($cgi->param('miniserver_no') // '');
     $view_cfg->{UDP_ENABLED} = defined($cgi->param('udp_enabled')) ? 'true' : 'false';
+    $view_cfg->{UDP_SEND_MODE} = scalar($cgi->param('udp_send_mode') // 'all');
 
     if (ref($sensor_meta) eq 'ARRAY') {
         for my $item (@{$sensor_meta}) {
@@ -76,6 +77,8 @@ my $current_host = $cfg->{UDP_HOST} // '';
 my $port = html_escape($port_raw);
 my $interval = html_escape($interval_raw);
 my $udp_enabled = $udp_enabled_raw eq 'true' ? 'checked' : '';
+my $mode_changes = ($view_cfg->{UDP_SEND_MODE} // 'all') eq 'changes' ? 'selected' : '';
+my $mode_all = $mode_changes ? '' : 'selected';
 
 my ($selected_index, $selected_host, $selected_name) = select_server(\@servers, $selected_no, $current_host);
 my $options = '';
@@ -179,6 +182,7 @@ print qq{
 <section class="fyta-card"><h2>UDP-Ausgabe</h2><div class="fyta-form-grid">
 <label for="udp_enabled">UDP aktivieren</label><div class="fyta-switch"><input id="udp_enabled" type="checkbox" name="udp_enabled" $udp_enabled><span>Messwerte per UDP senden</span></div>
 <label for="miniserver_no">Loxone Miniserver</label><select id="miniserver_no" name="miniserver_no" required>$options</select><div class="fyta-help">Die Liste wird direkt aus Einstellungen → Miniserver im LoxBerry gelesen.</div>
+<label for="udp_send_mode">Sendeverhalten</label><select id="udp_send_mode" name="udp_send_mode"><option value="all" $mode_all>Immer alle Werte senden</option><option value="changes" $mode_changes>Nur geänderte Werte senden</option></select><div class="fyta-help">Nach Neustart oder Änderung des UDP-Ziels werden alle Werte einmalig übertragen. Der Heartbeat bleibt unabhängig.</div>
 <label for="udp_port">UDP-Port</label><input id="udp_port" type="number" name="udp_port" value="$port" min="1" max="65535" required><div class="fyta-help">Port des virtuellen UDP-Eingangs in Loxone.</div>
 </div>
 <div class="fyta-actions" style="margin-top:18px"><button class="fyta-btn" type="submit" name="action" value="udp_test" formaction="settings.cgi" formmethod="post">UDP-Verbindung testen</button></div>

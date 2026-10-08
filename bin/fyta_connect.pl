@@ -25,6 +25,7 @@ my $STATUS_FILE = "$DATA_DIR/status.cfg";
 my $PLANTS_CACHE_FILE = "$DATA_DIR/plants_cache.json";
 my $SENSOR_META_FILE = "$DATA_DIR/sensor_meta.json";
 my $WORKER_LOCK_FILE = "$DATA_DIR/worker.lock";
+my $UDP_CACHE_FILE = "$DATA_DIR/udp_sent_state.json";
 
 make_path($DATA_DIR, { mode => 0750 }) unless -d $DATA_DIR;
 open(my $worker_lock_fh, ">>", $WORKER_LOCK_FILE)
@@ -82,6 +83,18 @@ my $token = resolve_access_token($cfg, 0);
 my $host = $cfg->{UDP_HOST} // "";
 my $port = $cfg->{UDP_PORT} // "";
 my $udp_enabled = ($cfg->{UDP_ENABLED} // "false") eq "true";
+my $send_changes = ($cfg->{UDP_SEND_MODE} // "all") eq "changes";
+my $udp_state = {};
+if ($send_changes && -f $UDP_CACHE_FILE) {
+    eval { open my $fh, "<", $UDP_CACHE_FILE or die $!; local $/; $udp_state = decode_json(<$fh>); close $fh; };
+    $udp_state = {} if $@ || ref($udp_state) ne "HASH";
+}
+my $boot_id = "";
+if (open my $boot_fh, "<", "/proc/sys/kernel/random/boot_id") { $boot_id = <$boot_fh> // ""; close $boot_fh; chomp $boot_id; }
+my $udp_identity = "$host:$port:$boot_id";
+my $previous_values = ($udp_state->{target} // "") eq $udp_identity && ref($udp_state->{values}) eq "HASH" ? $udp_state->{values} : {};
+my %sent_values = %{$previous_values};
+my $skipped_unchanged = 0;
 
 unless (length $token) {
     finish_with_error("Keine gültige FYTA-Anmeldung vorhanden – bitte Zugangsdaten unter Einstellungen hinterlegen");
@@ -248,10 +261,16 @@ foreach my $plant (@{$plants}) {
         }
 
         my $telegram = "FYTA_${name}_${field}=$value";
+        my $telegram_key = "FYTA_${name}_${field}=";
+        if ($send_changes && exists $sent_values{$telegram_key} && $sent_values{$telegram_key} eq "$value") {
+            $skipped_unchanged++;
+            next;
+        }
         my $result = udp::send_udp($host, $port, $telegram);
 
         if (defined $result && $result =~ /^OK\b/i) {
             $telegram_count++;
+            $sent_values{$telegram_key} = "$value";
             logger::info("UDP gesendet: $telegram");
         }
         else {
@@ -270,10 +289,15 @@ foreach my $plant (@{$plants}) {
     # Eigener 0/1-Aktualitätswert pro Pflanze/Sensor, pro Sensor konfigurierbar.
     if ($send_current) {
         my $freshness_telegram = "FYTA_${name}_Aktuell=$freshness";
+        my $freshness_key = "FYTA_${name}_Aktuell=";
+        if ($send_changes && exists $sent_values{$freshness_key} && $sent_values{$freshness_key} eq "$freshness") {
+            $skipped_unchanged++;
+        } else {
         my $freshness_result = udp::send_udp($host, $port, $freshness_telegram);
 
         if (defined $freshness_result && $freshness_result =~ /^OK\b/i) {
             $telegram_count++;
+            $sent_values{$freshness_key} = "$freshness";
             logger::info("UDP gesendet: $freshness_telegram");
         }
         else {
@@ -285,6 +309,7 @@ foreach my $plant (@{$plants}) {
             $last_error = "UDP-Fehler bei $freshness_telegram: $udp_error";
             logger::error($last_error);
         }
+        }
     }
     else {
         logger::debug("Aktualitätswert für $plant_name ist deaktiviert");
@@ -292,6 +317,16 @@ foreach my $plant (@{$plants}) {
 }
 
 save_sensor_meta(\@sensor_meta) if @sensor_meta;
+if ($send_changes) {
+    eval {
+        my $tmp = "$UDP_CACHE_FILE.tmp.$$";
+        open my $fh, ">", $tmp or die $!;
+        print {$fh} encode_json({ target => $udp_identity, values => \%sent_values });
+        close $fh or die $!;
+        rename $tmp, $UDP_CACHE_FILE or die $!;
+    };
+    logger::warning("UDP-Änderungsstatus konnte nicht gespeichert werden: $@") if $@;
+}
 
 # Globaler Heartbeat: 1 bedeutet, dass der Plugin-Lauf die FYTA-Daten verarbeitet hat.
 my $heartbeat_result = udp::send_udp($host, $port, "FYTA_Heartbeat=1");
@@ -327,7 +362,7 @@ else {
 my $last_success_epoch = $previous_status->{LAST_SUCCESS_EPOCH} // "";
 my $last_success = $previous_status->{LAST_SUCCESS} // "";
 
-if ($run_status eq "OK") {
+if ($run_status eq "OK" || $run_status eq "WARNING") {
     $last_success_epoch = $now;
     $last_success = timestamp($now);
 }
@@ -341,6 +376,7 @@ write_status({
     LAST_SUCCESS        => $last_success,
     PLANTS              => $plant_count,
     TELEGRAMS           => $telegram_count,
+    UNCHANGED_SKIPPED   => $skipped_unchanged,
     INVALID_VALUES      => $invalid_value_count,
     ERRORS              => $error_count,
     USED_PLANT_CACHE    => $used_plant_cache,

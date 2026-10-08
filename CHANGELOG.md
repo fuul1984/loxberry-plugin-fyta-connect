@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.5 – 2026-10-08
+
+- UDP-Sendeverhalten wählbar: alle Werte oder nur Änderungen; bisheriger Standard bleibt erhalten.
+- Änderungsstatus pro UDP-Ziel gespeichert, nach Neustart oder Zielwechsel vollständiger Versand.
+- Heartbeat wird weiterhin unabhängig vom gewählten Sendeverhalten übertragen.
+- Dashboard zeigt den letzten UDP-Versand und berechnet die nächste Synchronisation anhand des Scheduler-Zeitstempels.
+- Warnläufe mit erfolgreich verarbeiteten Daten aktualisieren den Erfolgszeitpunkt.
+- Bestehende Einstellungen bleiben erhalten.
+
+
 ## 1.9.0 – 2026-08-31
 
 ### Änderungen seit der letzten offiziellen Version 1.7.0

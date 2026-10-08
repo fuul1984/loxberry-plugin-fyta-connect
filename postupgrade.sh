@@ -21,6 +21,7 @@ ensure_key FYTA_EMAIL ""
 ensure_key MINISERVER_NO ""
 ensure_key MINISERVER_NAME ""
 ensure_key UDP_ENABLED true
+ensure_key UDP_SEND_MODE all
 ensure_key UDP_HOST ""
 ensure_key UDP_PORT 5007
 ensure_key INTERVAL 15
